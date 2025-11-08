@@ -1,149 +1,174 @@
 package map;
 
-class Node<K> {
-
-  public K key;
-  public Node<K> left;
-  public Node<K> right;
-
-  public Node(K _key) {
-    key = _key;
-    left = null;
-    right = null;
-  }
-
-  public String toString() {
-    return key.toString();
-  }
-}
-
 public class SplayTree<K extends Comparable<K>> {
 
-  public Node<K> root;
+  private class Node {
+
+    K key;
+    Node left, right;
+
+    public Node(K _key) {
+      key = _key;
+      left = null;
+      right = null;
+    }
+
+    public String toString() {
+      return key.toString();
+    }
+  }
+
+  private Node root;
 
   public SplayTree() {
     root = null;
   }
 
-  public SplayTree(K _key) {
-    root = new Node<>(_key);
+  public boolean search(K _key) {
+    return get(_key) != null;
+  }
+
+  public K get(K _key) {
+    if (root == null) return null;
+    root = splay(root, _key);
+    int cmp = _key.compareTo(root.key);
+    if (cmp == 0) {
+      return root.key;
+    } else {
+      return null;
+    }
   }
 
   public void insert(K _key) {
-    root = insert(root, _key);
-  }
-
-  public void delete(K _key) {}
-
-  public Node<K> get(K _key) {
-    return get(root, _key);
-  }
-
-  private Node<K> insert(Node<K> _node, K _key) {
-    if (_node == null) {
-      return new Node<>(_key);
+    if (root == null) {
+      root = new Node(_key);
+      return;
     }
 
-    _node = splay(_node, _key);
+    root = splay(root, _key);
 
-    if (_node.key == _key) {
-      return _node;
-    }
+    int cmp = _key.compareTo(root.key);
 
-    Node<K> new_node = new Node<>(_key);
-
-    int comparison = _node.key.compareTo(_key);
-    if (comparison > 0) {
-      new_node.right = _node;
-      new_node.left = _node.left;
-      _node.left = null;
-    } else {
-      new_node.left = _node;
-      new_node.right = _node.right;
-      _node.right = null;
-    }
-    return new_node;
-  }
-
-  private Node<K> get(Node<K> _node, K _key) {
-    if (_node == null) {
-      return null;
-    }
-    int comparison = _node.key.compareTo(_key);
-    if (comparison == 0) {
-      return _node;
-    } else if (comparison < 0) {
-      return get(_node.right, _key);
-    } else {
-      return get(_node.left, _key);
+    if (cmp < 0) {
+      Node n = new Node(_key);
+      n.left = root.left;
+      n.right = root;
+      root.left = null;
+      root = n;
+    } else if (cmp > 0) {
+      Node n = new Node(_key);
+      n.right = root.right;
+      n.left = root;
+      root.right = null;
+      root = n;
     }
   }
 
-  private Node<K> splay(Node<K> _node, K _key) {
-    if (_node == null || _node.key == _key) {
-      return _node;
-    }
+  public void remove(K _key) {
+    if (root == null) return;
 
-    int comparison = _node.key.compareTo(_key);
-    if (comparison > 0) {
+    root = splay(root, _key);
+
+    int cmp = _key.compareTo(root.key);
+
+    if (cmp == 0) {
+      if (root.left == null) {
+        root = root.right;
+      } else {
+        Node x = root.right;
+        root = root.left;
+        splay(root, _key);
+        root.right = x;
+      }
+    }
+  }
+
+  private Node splay(Node _node, K _key) {
+    if (_node == null) return null;
+
+    int cmp1 = _key.compareTo(_node.key);
+
+    if (cmp1 < 0) {
       if (_node.left == null) {
         return _node;
       }
-      comparison = _node.left.key.compareTo(_key);
-      if (comparison > 0) {
+      int cmp2 = _key.compareTo(_node.left.key);
+      if (cmp2 < 0) {
         _node.left.left = splay(_node.left.left, _key);
-        _node = zag(_node);
-      } else if (comparison < 0) {
+        _node = zig(_node);
+      } else if (cmp2 > 0) {
         _node.left.right = splay(_node.left.right, _key);
-        if (_node.left.right != null) _node.left = zig(_node.left);
+        if (_node.left.right != null) _node.left = zag(_node.left);
       }
-      return (_node.left == null) ? _node : zag(_node);
-    } else {
+
+      if (_node.left == null) return _node;
+      else return zig(_node);
+    } else if (cmp1 > 0) {
       if (_node.right == null) {
         return _node;
       }
-      comparison = _node.right.key.compareTo(_key);
-      if (comparison > 0) {
+
+      int cmp2 = _key.compareTo(_node.right.key);
+      if (cmp2 < 0) {
         _node.right.left = splay(_node.right.left, _key);
-        if (_node.right.left != null) _node.right = zag(_node.right);
-      } else if (comparison < 0) {
+        if (_node.right.left != null) _node.right = zig(_node.right);
+      } else if (cmp2 > 0) {
         _node.right.right = splay(_node.right.right, _key);
-        _node = zig(_node);
+        _node = zag(_node);
       }
-      return (_node.right == null) ? _node : zig(_node);
-    }
+
+      if (_node.right == null) return _node;
+      else return zag(_node);
+    } else return _node;
   }
 
-  private Node<K> zig(Node<K> _node) {
-    Node<K> new_node = _node.left;
+  public int height() {
+    return __height__(root);
+  }
+
+  private int __height__(Node _node) {
+    if (_node == null) return -1;
+    return 1 + Math.max(__height__(_node.left), __height__(_node.right));
+  }
+
+  public int size() {
+    return __size__(root);
+  }
+
+  private int __size__(Node _node) {
+    if (_node == null) return 0;
+    else return 1 + __size__(_node.left) + __size__(_node.right);
+  }
+
+  private Node zig(Node _node) {
+    Node new_node = _node.left;
     _node.left = new_node.right;
     new_node.right = _node;
     return new_node;
   }
 
-  private Node<K> zag(Node<K> _node) {
-    Node<K> new_node = _node.right;
+  private Node zag(Node _node) {
+    Node new_node = _node.right;
     _node.right = new_node.left;
     new_node.left = _node;
     return new_node;
   }
 
   public String toString() {
-    if (root != null) {
-      String data = toString(root);
-      return data.substring(0, data.length() - 2);
-    } else {
-      return "null";
-    }
+    if (root == null) return "null";
+    String data = inorder(root).trim();
+    return data.substring(0, data.length() - 1);
   }
 
-  private String toString(Node<K> _node) {
-    String data = "";
-    if (_node != null) {
-      data = _node.toString() + ", ";
-      data += toString(_node.left);
-      data += toString(_node.right);
+  private String inorder(Node _node) {
+    if (_node == null) return "";
+    else {
+      String data = "";
+      data += inorder(_node.left);
+      data += _node + ", ";
+      data += inorder(_node.right);
+
+      return data;
     }
-    return data;
   }
 }
